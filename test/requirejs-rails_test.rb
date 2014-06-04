@@ -103,6 +103,7 @@ class RequirejsRailsConfigTest < ActiveSupport::TestCase
 end
 
 class RequirejsHelperTest < ActionView::TestCase
+  JQUERY_CDN = 'http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js'
   
   def setup
     controller.requirejs_included = false
@@ -113,7 +114,7 @@ class RequirejsHelperTest < ActionView::TestCase
 
   def with_cdn
     Rails.application.config.requirejs.user_config = { 'paths' => 
-      { 'jquery' => 'http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js' }
+      { 'jquery' => JQUERY_CDN }
     }
   end
   
@@ -167,14 +168,38 @@ class RequirejsHelperTest < ActionView::TestCase
   end
 
   test "requirejs_include_tag with CDN asset and digested asset paths" do
-    begin
-      with_cdn
-      saved_digest = Rails.application.config.assets.digest
-      Rails.application.config.assets.digest = true
+    with_cdn
+    with_digest_enabled do
       render :text => wrap(requirejs_include_tag)
       assert_select "script:first-of-type", :text => %r{var require =.*paths.*http://ajax}
-    ensure
-      Rails.application.config.assets.digest = saved_digest
     end
+  end
+
+  test "requirejs_include_tag with CDN asset with fallback" do
+    Rails.application.config.requirejs.user_config = {
+      'paths' => {
+        'jquery' => [
+          JQUERY_CDN,
+          'jquery'
+        ]
+      }
+    }
+    with_digest_enabled do
+      render :text => wrap(requirejs_include_tag)
+      assert_select "script:first-of-type", :text => /var require =.*\"paths.*\"jquery\":\[\"#{JQUERY_CDN}\",\"jquery\"\]\}}/
+    end
+  end
+
+private
+
+  def with_digest_enabled
+    raise ArgumentError.new('block required') unless block_given?
+
+    saved_digest = Rails.application.config.assets.digest
+    Rails.application.config.assets.digest = true
+
+    yield
+  ensure
+    Rails.application.config.assets.digest = saved_digest
   end
 end

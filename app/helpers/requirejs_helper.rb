@@ -13,7 +13,7 @@ module RequirejsHelper
         name += ".js" unless name =~ /\.js$/
         data['main'] = _javascript_path(name).
                         sub(/\.js$/,'').
-                        sub(base_url(name), '').
+                        sub(baseUrl(name), '').
                         sub(/\A\//, '')
       end
 
@@ -50,7 +50,17 @@ module RequirejsHelper
 
           if run_config.has_key? 'paths'
             # Add paths for assets specified by full URL (on a CDN)
-            run_config['paths'].each { |k,v| paths[k] = v if v =~ /^https?:/ }
+            run_config['paths'].each { |path, mapping|
+              scheme_regex = /^(https?:|\/\/)/
+              case mapping
+                when String
+                  paths[path] = mapping if mapping =~ scheme_regex
+                when Array
+                  paths[path] = mapping if mapping.any? {|url| url =~ scheme_regex}
+                else
+                  raise "Invalid configuration for paths entry with name #{path}"
+              end
+            }
           end
 
           # Override user paths, whose mappings are only relevant in dev mode
@@ -58,7 +68,7 @@ module RequirejsHelper
           run_config['paths'] = paths
         end
 
-        run_config['baseUrl'] = base_url(name)
+        run_config['baseUrl'] = baseUrl(name)
         html.concat <<-HTML
         <script>var require = #{run_config.to_json};</script>
         HTML
@@ -95,10 +105,10 @@ module RequirejsHelper
     end
   end
 
-  def base_url(js_asset)
+  def baseUrl(js_asset)
     js_asset_path = javascript_path(js_asset)
     uri = URI.parse(js_asset_path)
     asset_host = uri.host && js_asset_path.sub(uri.request_uri, '')
-    [asset_host, Rails.application.config.relative_url_root, Rails.application.config.assets.prefix].join
+    [asset_host, Rails.application.config.assets.prefix].join
   end
 end
