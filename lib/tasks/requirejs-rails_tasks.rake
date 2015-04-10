@@ -151,4 +151,5 @@ OS X Homebrew users can use 'brew install node'.
   end
 end
 
-task "assets:precompile" => ["requirejs:precompile:external"]
+# Note: Adding tmp:cache:clear after requirejs:precompile:external so that assets:precompile happens pristinely.
+task "assets:precompile" => [ "requirejs:precompile:external", "tmp:cache:clear" ]
