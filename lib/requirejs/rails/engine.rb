@@ -9,19 +9,9 @@ module Requirejs
       config.before_configuration do |app|
         config.requirejs = Requirejs::Rails::Config.new(app)
         config.requirejs.precompile = [/require\.js$/]
-        
-        # 
-        # Tinymce, ckeditor, and non-compiled requirejs (i.e. gears-demp) all fetch non-digested assets 
-        # from the server. However, one of the side-effects of requirejs-rails is to copy all js files 
-        # into 'public/assets' (a.k.a source directory). The location of the source directory changes in
-        # recent version of requirejs-rails. The following restores the directory back to public/assets.
-        # 
-        # This is very smelly. 
-        # 
-        config.requirejs.source_dir = app.root.join('public/assets')
-        
+
         #
-        # Requirejs-rails calls mkpath on source_dir. The source_dir by default is tmp/requirejs/src 
+        # Requirejs-rails calls mkpath on source_dir. The source_dir by default is tmp/requirejs/src
         # which implicitly creates the tmp/requirejs directory. However, we just redifined source_dir
         # above to be something else so we need to explicitly create tmp/requirejs as that is expected
         # to exist.
@@ -31,6 +21,16 @@ module Requirejs
 
       config.before_initialize do |app|
         config = app.config
+
+        #
+        # Tinymce, ckeditor, and non-compiled requirejs (i.e. gears-demp) all fetch non-digested assets
+        # from the server. However, one of the side-effects of requirejs-rails is to copy all js files
+        # into 'public/assets' (a.k.a source directory). The location of the source directory changes in
+        # recent version of requirejs-rails. The following restores the directory back to public/assets.
+        #
+        # This is very smelly.
+        #
+        config.requirejs.source_dir = app.root.join("public#{config.assets.prefix}")
 
         # Process the user config file in #before_initalization (instead of #before_configuration) so that
         # environment-specific configuration can be injected into the user configuration file
